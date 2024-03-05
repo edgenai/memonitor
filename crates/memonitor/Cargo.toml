@@ -1,0 +1,11 @@
+[package]
+name = "memonitor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+memonitor-sys = { path = "../memonitor-sys" }
+
+[features]
+default = ["vulkan"]
+vulkan = ["memonitor-sys/vulkan"]

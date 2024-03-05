@@ -1,0 +1,6 @@
+[submodule "crates/memonitor-sys/vulkan/thirdparty/volk"]
+	path = crates/memonitor-sys/vulkan/thirdparty/volk
+	url = https://github.com/zeux/volk.git
+[submodule "crates/memonitor-sys/vulkan/thirdparty/Vulkan-Headers"]
+	path = crates/memonitor-sys/vulkan/thirdparty/Vulkan-Headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git

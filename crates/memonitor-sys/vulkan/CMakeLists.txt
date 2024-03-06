@@ -2,12 +2,16 @@ cmake_minimum_required(VERSION 3.5)
 
 project(memonitor-vk LANGUAGES C)
 
+if (WIN32)
+    set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+endif ()
+
 set(VULKAN_HEADERS_INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/Vulkan-Headers")
 add_subdirectory(thirdparty/volk)
 
 add_library(memonitor-vk STATIC "include/memonitor.h" "src/memonitor.c")
 target_include_directories(memonitor-vk PUBLIC "include")
-target_link_libraries(memonitor-vk PUBLIC volk)
+target_link_libraries(memonitor-vk PRIVATE volk)
 
 if (NOT VOLK_INSTALL)
     install(TARGETS volk

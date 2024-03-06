@@ -15,6 +15,12 @@ const char *layer_names[0] = {};
 
 const char *extension_names[1] = {"VK_KHR_get_physical_device_properties2"};
 
+/**
+* Check if the required layers are supported locally.
+*
+* @return `VK_SUCCESS` if they are supported, `VK_RESULT_MAX_ENUM` if they are not and anything else if an error
+* occurred.
+*/
 int layer_support() {
     uint32_t count = 0;
     VkResult res = vkEnumerateInstanceLayerProperties(&count, NULL);
@@ -48,6 +54,12 @@ int layer_support() {
     return VK_SUCCESS;
 }
 
+/**
+ * Check if the required extensions are supported locally.
+ *
+ * @return `VK_SUCCESS` if they are supported, `VK_RESULT_MAX_ENUM` if they are not and anything else if an error
+ * occurred.
+ */
 int extension_support() {
     uint32_t count = 0;
     VkResult res = vkEnumerateInstanceExtensionProperties(NULL, &count, NULL);
@@ -132,4 +144,45 @@ int init_vk() {
 
 void term_vk() {
     volkFinalize();
+}
+
+struct Devices list_devices() {
+    const struct Devices invalid_devices = {NULL, 0};
+
+    VkInstance instance = volkGetLoadedInstance();
+    if (instance == VK_NULL_HANDLE) {
+        return invalid_devices;
+    }
+
+    uint32_t count = 0;
+    VkResult res = vkEnumeratePhysicalDevices(instance, &count, NULL);
+    if (res != VK_SUCCESS) {
+        return invalid_devices;
+    }
+    VkPhysicalDevice *device_handles = malloc(sizeof(VkPhysicalDevice *) * count);
+    res = vkEnumeratePhysicalDevices(instance, &count, device_handles);
+    if (res != VK_SUCCESS) {
+        free(device_handles);
+        return invalid_devices;
+    }
+
+    struct Devices devices = {device_handles, count};
+    return devices;
+}
+
+void destroy_devices(struct Devices *devices) {
+    if (devices && devices->handle && devices->count) {
+        free(devices->handle);
+    }
+}
+
+struct DeviceRef get_device(struct Devices *devices, uint32_t index) {
+    const struct DeviceRef invalid_ref = {NULL};
+    if (!devices || !devices->handle || !devices->count || devices->count <= index) {
+        return invalid_ref;
+    }
+
+    VkPhysicalDevice *cast_devices = devices->handle;
+    struct DeviceRef ref = {cast_devices[index]};
+    return ref;
 }

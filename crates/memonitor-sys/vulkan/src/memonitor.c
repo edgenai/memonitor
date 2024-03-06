@@ -93,7 +93,7 @@ int extension_support() {
     return VK_SUCCESS;
 }
 
-int init_vk() {
+int vk_init() {
     VkResult res = volkInitialize();
     if (res != VK_SUCCESS) {
         return res;
@@ -142,12 +142,12 @@ int init_vk() {
     return VK_SUCCESS;
 }
 
-void term_vk() {
+void vk_term() {
     volkFinalize();
 }
 
-struct Devices list_devices() {
-    const struct Devices invalid_devices = {NULL, 0};
+struct vk_Devices vk_list_devices() {
+    const struct vk_Devices invalid_devices = {NULL, 0};
 
     VkInstance instance = volkGetLoadedInstance();
     if (instance == VK_NULL_HANDLE) {
@@ -166,23 +166,91 @@ struct Devices list_devices() {
         return invalid_devices;
     }
 
-    struct Devices devices = {device_handles, count};
+    uint32_t *heap_indexes = calloc(count, sizeof(uint32_t));
+    for (uint32_t d = 0; d < count; d++) {
+        VkPhysicalDeviceMemoryProperties2 properties;
+        vkGetPhysicalDeviceMemoryProperties2(device_handles[d], &properties);
+        for (uint32_t i = 0; i < properties.memoryProperties.memoryHeapCount; i++) {
+            VkMemoryHeapFlags flags = properties.memoryProperties.memoryHeaps[i].flags;
+            if (flags == VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+                heap_indexes[d] = i;
+                break;
+            }
+        }
+    }
+
+    struct vk_Devices devices = {device_handles, heap_indexes, count};
     return devices;
 }
 
-void destroy_devices(struct Devices *devices) {
+void vk_destroy_devices(struct vk_Devices *devices) {
     if (devices && devices->handle && devices->count) {
         free(devices->handle);
+        devices->handle = NULL;
+        free(devices->local_heaps);
+        devices->local_heaps = NULL;
+        devices->count = 0;
     }
 }
 
-struct DeviceRef get_device(struct Devices *devices, uint32_t index) {
-    const struct DeviceRef invalid_ref = {NULL};
+struct vk_DeviceRef vk_get_device(struct vk_Devices *devices, uint32_t index) {
+    const struct vk_DeviceRef invalid_ref = {NULL};
     if (!devices || !devices->handle || !devices->count || devices->count <= index) {
         return invalid_ref;
     }
 
     VkPhysicalDevice *cast_devices = devices->handle;
-    struct DeviceRef ref = {cast_devices[index]};
+    struct vk_DeviceRef ref = {cast_devices[index], devices->local_heaps[index]};
     return ref;
+}
+
+struct vk_DeviceProperties vk_device_properties(struct vk_DeviceRef device) {
+    const struct vk_DeviceProperties invalid_properties = {NULL, Other};
+    if (!device.handle) {
+        return invalid_properties;
+    }
+
+    VkPhysicalDevice cast_device = device.handle;
+    VkPhysicalDeviceProperties2 properties;
+    vkGetPhysicalDeviceProperties2(cast_device, &properties);
+    enum vk_DeviceKind kind = Other;
+    switch (properties.properties.deviceType) {
+        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+            kind = IntegratedGPU;
+            break;
+        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+            kind = DiscreteGPU;
+            break;
+        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+            kind = VirtualGPU;
+            break;
+        case VK_PHYSICAL_DEVICE_TYPE_CPU:
+            kind = CPU;
+            break;
+        case VK_PHYSICAL_DEVICE_TYPE_OTHER:
+        case VK_PHYSICAL_DEVICE_TYPE_MAX_ENUM:
+            kind = Other;
+            break;
+    }
+    struct vk_DeviceProperties ret_props = {properties.properties.deviceName, kind};
+    return ret_props;
+}
+
+struct vk_DeviceMemoryProperties vk_device_memory_properties(struct vk_DeviceRef device) {
+    const struct vk_DeviceMemoryProperties invalid_properties = {};
+    if (!device.handle) {
+        return invalid_properties;
+    }
+
+    VkPhysicalDevice cast_device = device.handle;
+    VkPhysicalDeviceMemoryProperties2 properties;
+    vkGetPhysicalDeviceMemoryProperties2(cast_device, &properties);
+
+    if (!properties.pNext) {
+        return invalid_properties;
+    }
+    VkPhysicalDeviceMemoryBudgetPropertiesEXT *cast_properties = properties.pNext;
+    struct vk_DeviceMemoryProperties mem_props = {cast_properties->heapBudget[device.local_heap],
+                                                  cast_properties->heapUsage[device.local_heap]};
+    return mem_props;
 }

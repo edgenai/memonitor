@@ -24,6 +24,7 @@ int layer_support() {
     VkLayerProperties *properties = malloc(sizeof(VkLayerProperties *) * count);
     res = vkEnumerateInstanceLayerProperties(&count, properties);
     if (res != VK_SUCCESS) {
+        free(properties);
         return res;
     }
 
@@ -38,10 +39,12 @@ int layer_support() {
         }
 
         if (!layer_found) {
+            free(properties);
             return VK_RESULT_MAX_ENUM;
         }
     }
 
+    free(properties);
     return VK_SUCCESS;
 }
 
@@ -54,6 +57,7 @@ int extension_support() {
     VkExtensionProperties *properties = malloc(sizeof(VkExtensionProperties *) * count);
     res = vkEnumerateInstanceExtensionProperties(NULL, &count, properties);
     if (res != VK_SUCCESS) {
+        free(properties);
         return res;
     }
 
@@ -68,10 +72,12 @@ int extension_support() {
         }
 
         if (!extension_found) {
+            free(properties);
             return VK_RESULT_MAX_ENUM;
         }
     }
 
+    free(properties);
     return VK_SUCCESS;
 }
 

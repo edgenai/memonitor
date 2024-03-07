@@ -8,7 +8,7 @@
 #define ARRAY_LEN(array) sizeof(array) / sizeof(array[0])
 
 #ifdef USE_VALIDATION_LAYERS
-const char* layer_names[1] = {"VK_LAYER_KHRONOS_validation"};
+const char *layer_names[1] = {"VK_LAYER_KHRONOS_validation"};
 #else
 const char *layer_names[0] = {};
 #endif // USE_VALIDATION_LAYERS
@@ -27,7 +27,7 @@ int layer_support() {
     if (res != VK_SUCCESS) {
         return res;
     }
-    VkLayerProperties *properties = malloc(sizeof(VkLayerProperties *) * count);
+    VkLayerProperties *properties = malloc(sizeof(VkLayerProperties) * count);
     res = vkEnumerateInstanceLayerProperties(&count, properties);
     if (res != VK_SUCCESS) {
         free(properties);
@@ -66,7 +66,7 @@ int extension_support() {
     if (res != VK_SUCCESS) {
         return res;
     }
-    VkExtensionProperties *properties = malloc(sizeof(VkExtensionProperties *) * count);
+    VkExtensionProperties *properties = malloc(sizeof(VkExtensionProperties) * count);
     res = vkEnumerateInstanceExtensionProperties(NULL, &count, properties);
     if (res != VK_SUCCESS) {
         free(properties);
@@ -159,7 +159,7 @@ struct vk_Devices vk_list_devices() {
     if (res != VK_SUCCESS) {
         return invalid_devices;
     }
-    VkPhysicalDevice *device_handles = malloc(sizeof(VkPhysicalDevice *) * count);
+    VkPhysicalDevice *device_handles = malloc(sizeof(VkPhysicalDevice) * count);
     res = vkEnumeratePhysicalDevices(instance, &count, device_handles);
     if (res != VK_SUCCESS) {
         free(device_handles);
@@ -168,10 +168,11 @@ struct vk_Devices vk_list_devices() {
 
     uint32_t *heap_indexes = calloc(count, sizeof(uint32_t));
     for (uint32_t d = 0; d < count; d++) {
-        VkPhysicalDeviceMemoryProperties2 properties;
-        vkGetPhysicalDeviceMemoryProperties2(device_handles[d], &properties);
-        for (uint32_t i = 0; i < properties.memoryProperties.memoryHeapCount; i++) {
-            VkMemoryHeapFlags flags = properties.memoryProperties.memoryHeaps[i].flags;
+        VkPhysicalDeviceMemoryProperties2 memory_properties = {};
+        memory_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+        vkGetPhysicalDeviceMemoryProperties2(device_handles[d], &memory_properties);
+        for (uint32_t i = 0; i < memory_properties.memoryProperties.memoryHeapCount; i++) {
+            VkMemoryHeapFlags flags = memory_properties.memoryProperties.memoryHeaps[i].flags;
             if (flags == VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
                 heap_indexes[d] = i;
                 break;
@@ -205,13 +206,14 @@ struct vk_DeviceRef vk_get_device(struct vk_Devices *devices, uint32_t index) {
 }
 
 struct vk_DeviceProperties vk_device_properties(struct vk_DeviceRef device) {
-    const struct vk_DeviceProperties invalid_properties = {NULL, Other};
+    const struct vk_DeviceProperties invalid_properties = {{}, Other};
     if (!device.handle) {
         return invalid_properties;
     }
 
     VkPhysicalDevice cast_device = device.handle;
-    VkPhysicalDeviceProperties2 properties;
+    VkPhysicalDeviceProperties2 properties = {};
+    properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
     vkGetPhysicalDeviceProperties2(cast_device, &properties);
     enum vk_DeviceKind kind = Other;
     switch (properties.properties.deviceType) {
@@ -232,7 +234,9 @@ struct vk_DeviceProperties vk_device_properties(struct vk_DeviceRef device) {
             kind = Other;
             break;
     }
-    struct vk_DeviceProperties ret_props = {properties.properties.deviceName, kind};
+    struct vk_DeviceProperties ret_props = {};
+    strncpy(ret_props.name, properties.properties.deviceName, 256U);
+    ret_props.kind = kind;
     return ret_props;
 }
 
@@ -243,14 +247,17 @@ struct vk_DeviceMemoryProperties vk_device_memory_properties(struct vk_DeviceRef
     }
 
     VkPhysicalDevice cast_device = device.handle;
-    VkPhysicalDeviceMemoryProperties2 properties;
+    VkPhysicalDeviceMemoryProperties2 properties = {};
+    properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+    VkPhysicalDeviceMemoryBudgetPropertiesEXT memory_stats = {};
+    memory_stats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
+    properties.pNext = &memory_stats;
     vkGetPhysicalDeviceMemoryProperties2(cast_device, &properties);
 
     if (!properties.pNext) {
         return invalid_properties;
     }
-    VkPhysicalDeviceMemoryBudgetPropertiesEXT *cast_properties = properties.pNext;
-    struct vk_DeviceMemoryProperties mem_props = {cast_properties->heapBudget[device.local_heap],
-                                                  cast_properties->heapUsage[device.local_heap]};
+    struct vk_DeviceMemoryProperties mem_props = {memory_stats.heapBudget[device.local_heap],
+                                                  memory_stats.heapUsage[device.local_heap]};
     return mem_props;
 }

@@ -1,4 +1,7 @@
+use bindgen::callbacks::ParseCallbacks;
+use bindgen::{Builder, EnumVariation};
 use cmake::Config;
+use std::env;
 use std::fs::read_dir;
 use std::path::PathBuf;
 
@@ -19,4 +22,43 @@ fn main() {
     );
     println!("cargo:rustc-link-lib=static=volk");
     println!("cargo:rustc-link-lib=static=memonitor-vk");
+
+    let vk_bindings = Builder::default()
+        .header(vk_dir.join("include").join("memonitor.h").to_string_lossy())
+        .allowlist_function("vk_.*")
+        .allowlist_type("vk_.*")
+        .parse_callbacks(Box::new(PrefixRemover::new("vk_")))
+        .default_enum_style(EnumVariation::Rust {
+            non_exhaustive: true,
+        })
+        .use_core()
+        .generate()
+        .expect("Failed to generate Vulkan bindings");
+
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+
+    vk_bindings
+        .write_to_file(out_path.join("vk_bindings.rs"))
+        .expect("Couldn't write bindings");
+}
+
+#[derive(Debug)]
+struct PrefixRemover {
+    prefix: String,
+}
+
+impl PrefixRemover {
+    fn new(prefix: impl ToString) -> Self {
+        Self {
+            prefix: prefix.to_string(),
+        }
+    }
+}
+
+impl ParseCallbacks for PrefixRemover {
+    fn item_name(&self, original_item_name: &str) -> Option<String> {
+        original_item_name
+            .strip_prefix(&self.prefix)
+            .map(move |s| s.to_string())
+    }
 }

@@ -1,5 +1,12 @@
 #pragma once
 
+#include <stdint.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 /**
  * Initializes the global context.
  *
@@ -76,7 +83,7 @@ enum vk_DeviceKind {
  */
 struct vk_DeviceProperties {
     /// The name of this device.
-    const char *name;
+    char name[256U];
     /// The hardware type of this device.
     enum vk_DeviceKind kind;
 };
@@ -106,3 +113,7 @@ struct vk_DeviceMemoryProperties {
  * @return The device's memory information.
  */
 struct vk_DeviceMemoryProperties vk_device_memory_properties(struct vk_DeviceRef device);
+
+#ifdef __cplusplus
+}
+#endif // __cplusplus

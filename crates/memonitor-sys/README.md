@@ -10,9 +10,9 @@ Automatically generated bindings for some of [memonitor](https://github.com/edge
 
 ## Platforms
 
-- [x] Linux
-- [ ] Windows (needs checking)
-- [ ] macOS (needs checking)
+* Linux
+* Windows
+* macOS
 
 ## Dependencies
 

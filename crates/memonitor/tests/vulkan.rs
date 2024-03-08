@@ -1,16 +1,26 @@
-use memonitor::{init, list_backends};
+use memonitor::{init, list_all_devices, list_backends};
 
 #[test]
 fn vulkan() {
     init();
 
-    if let Some(guard) = list_backends() {
-        let vulkan = guard.iter().find(|b| b.name() == "Vulkan").unwrap();
-        for device in vulkan.list_devices().unwrap().iter() {
-            let stats = device.current_memory_stats();
+    let device_ids = {
+        let backends = list_backends();
+        backends
+            .iter()
+            .find(|b| b.name() == "Vulkan")
+            .unwrap()
+            .device_ids()
+            .to_vec()
+    };
+
+    {
+        let devices = list_all_devices();
+        for id in device_ids {
+            let stats = devices[id].current_memory_stats();
             println!(
                 "Device found: {} - Memory stats: {} bytes used out of {}",
-                device.name(),
+                devices[id].name(),
                 stats.usage,
                 stats.budget
             );

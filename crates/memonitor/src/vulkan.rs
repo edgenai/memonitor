@@ -3,16 +3,16 @@ use std::ptr::addr_of_mut;
 
 use memonitor_sys::vulkan;
 
-use crate::{Backend, Device, DeviceKind, GPUKind, MemoryStats};
+use crate::{BackendHandle, DeviceHandle, DeviceKind, GPUKind, MemoryStats};
 
 const BACKEND_NAME: &str = "Vulkan";
 
 pub(super) struct Vulkan {
     handle: vulkan::Devices,
-    device_count: usize,
 }
 
 unsafe impl Send for Vulkan {}
+unsafe impl Sync for Vulkan {}
 
 impl Vulkan {
     pub(super) fn init() -> Option<(Self, Vec<VulkanDevice>)> {
@@ -63,10 +63,7 @@ impl Vulkan {
                 devices.push(device);
             }
 
-            let backend = Vulkan {
-                handle: c_devices,
-                device_count: devices.len(),
-            };
+            let backend = Vulkan { handle: c_devices };
 
             Some((backend, devices))
         } else {
@@ -75,13 +72,9 @@ impl Vulkan {
     }
 }
 
-impl Backend for Vulkan {
+impl BackendHandle for Vulkan {
     fn name(&self) -> &str {
         BACKEND_NAME
-    }
-
-    fn device_count(&self) -> usize {
-        self.device_count
     }
 }
 
@@ -101,8 +94,9 @@ pub(super) struct VulkanDevice {
 }
 
 unsafe impl Send for VulkanDevice {}
+unsafe impl Sync for VulkanDevice {}
 
-impl Device for VulkanDevice {
+impl DeviceHandle for VulkanDevice {
     fn name(&self) -> &str {
         &self.name
     }

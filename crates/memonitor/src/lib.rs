@@ -1,52 +1,84 @@
-use std::ops::{Deref, Range, RangeBounds, RangeFull};
-use std::sync::{Mutex, MutexGuard};
+use std::ops::{Deref, RangeBounds, RangeFull};
+use std::sync::{RwLock, RwLockReadGuard};
 
 #[cfg(feature = "vulkan")]
 mod vulkan;
 
-static BACKENDS: Mutex<Vec<Box<dyn Backend>>> = Mutex::new(Vec::new());
-static DEVICES: Mutex<Vec<Box<dyn Device>>> = Mutex::new(Vec::new());
+static CONTEXT: RwLock<Context> = RwLock::new(Context::default());
 
-pub fn init() {
-    #[cfg(feature = "vulkan")]
-    if let Some((backend, devices)) = vulkan::Vulkan::init() {
-        register_backend(backend, devices)
-    }
+struct Context {
+    backends: Vec<Backend>,
+    devices: Vec<Device>,
 }
 
-fn register_backend<B, D>(backend: B, devices: Vec<D>)
-where
-    B: Backend + 'static,
-    D: Device + 'static,
-{
-    {
-        let mut guard = BACKENDS.lock().unwrap();
-        guard.push(Box::new(backend));
-    }
-
-    {
-        let mut guard = DEVICES.lock().unwrap();
-        for device in devices {
-            guard.push(Box::new(device));
+impl Context {
+    const fn default() -> Self {
+        Context {
+            backends: vec![],
+            devices: vec![],
         }
     }
-}
 
-type OptionalSliceGuard<T, R> = Option<SliceGuard<'static, T, R>>;
+    fn init(&mut self) {
+        if !self.backends.is_empty() {
+            return;
+        }
 
-pub fn list_backends() -> OptionalSliceGuard<Box<dyn Backend>, RangeFull> {
-    if let Ok(guard) = BACKENDS.lock() {
-        Some(SliceGuard { guard, range: .. })
-    } else {
-        None
+        #[cfg(feature = "vulkan")]
+        if let Some((backend, devices)) = vulkan::Vulkan::init() {
+            self.register_backend(backend, devices)
+        }
+    }
+
+    fn register_backend<B, D>(&mut self, backend: B, mut devices: Vec<D>)
+    where
+        B: BackendHandle + 'static,
+        D: DeviceHandle + 'static,
+    {
+        let old_device_count = self.devices.len();
+        let backend_id = self.backends.len();
+        let mut new_device_ids = Vec::with_capacity(devices.len());
+
+        for (idx, device) in devices.drain(..).enumerate() {
+            let global_id = idx + old_device_count;
+            let device = Device {
+                inner: Box::new(device),
+                global_id,
+                local_id: idx,
+                backend_id,
+            };
+            self.devices.push(device);
+            new_device_ids.push(global_id);
+        }
+
+        let backend = Backend {
+            inner: Box::new(backend),
+            id: backend_id,
+            device_ids: new_device_ids,
+        };
+        self.backends.push(backend);
     }
 }
 
-pub fn list_all_devices() -> OptionalSliceGuard<Box<dyn Device>, RangeFull> {
-    if let Ok(guard) = DEVICES.lock() {
-        Some(SliceGuard { guard, range: .. })
-    } else {
-        None
+pub fn init() {
+    CONTEXT.write().unwrap().init();
+}
+
+pub fn list_backends() -> SliceGuard<'static, Backend, RangeFull> {
+    let guard = CONTEXT.read().unwrap();
+    SliceGuard {
+        guard,
+        range: ..,
+        _phantom: Default::default(),
+    }
+}
+
+pub fn list_all_devices() -> SliceGuard<'static, Device, RangeFull> {
+    let guard = CONTEXT.read().unwrap();
+    SliceGuard {
+        guard,
+        range: ..,
+        _phantom: Default::default(),
     }
 }
 
@@ -54,18 +86,33 @@ pub struct SliceGuard<'s, T, R>
 where
     R: RangeBounds<usize>,
 {
-    guard: MutexGuard<'s, Vec<T>>,
+    guard: RwLockReadGuard<'s, Context>,
     range: R,
+    _phantom: std::marker::PhantomData<T>,
 }
 
-impl<'s, T, R> Deref for SliceGuard<'s, T, R>
+impl<'s, R> Deref for SliceGuard<'s, Backend, R>
 where
     R: RangeBounds<usize>,
 {
-    type Target = [T];
+    type Target = [Backend];
 
     fn deref(&self) -> &Self::Target {
-        &self.guard[(
+        &self.guard.backends[(
+            self.range.start_bound().cloned(),
+            self.range.end_bound().cloned(),
+        )]
+    }
+}
+
+impl<'s, R> Deref for SliceGuard<'s, Device, R>
+where
+    R: RangeBounds<usize>,
+{
+    type Target = [Device];
+
+    fn deref(&self) -> &Self::Target {
+        &self.guard.devices[(
             self.range.start_bound().cloned(),
             self.range.end_bound().cloned(),
         )]
@@ -73,45 +120,62 @@ where
 }
 
 pub struct RefGuard<'s, T> {
-    guard: MutexGuard<'s, Vec<T>>,
+    guard: RwLockReadGuard<'s, Context>,
     index: usize,
+    _phantom: std::marker::PhantomData<T>,
 }
 
-impl<'s, T> Deref for RefGuard<'s, T> {
-    type Target = T;
+impl<'s> Deref for RefGuard<'s, Backend> {
+    type Target = Backend;
 
     fn deref(&self) -> &Self::Target {
-        &self.guard[self.index]
+        &self.guard.backends[self.index]
     }
 }
 
-pub trait Backend: Send {
+impl<'s> Deref for RefGuard<'s, Device> {
+    type Target = Device;
+
+    fn deref(&self) -> &Self::Target {
+        &self.guard.devices[self.index]
+    }
+}
+
+pub trait BackendHandle: Send + Sync {
     fn name(&self) -> &str;
-
-    fn device_count(&self) -> usize;
-
-    fn list_devices(&self) -> OptionalSliceGuard<Box<dyn Device>, Range<usize>> {
-        if let Ok(guard) = DEVICES.lock() {
-            guard
-                .iter()
-                .position(|d| d.backend_name() == self.name())
-                .map(|pos| SliceGuard {
-                    guard,
-                    range: pos..pos + self.device_count(),
-                })
-        } else {
-            None
-        }
-    }
 }
 
-impl PartialEq for dyn Backend {
+pub struct Backend {
+    inner: Box<dyn BackendHandle>,
+    id: usize,
+    device_ids: Vec<usize>,
+}
+
+impl PartialEq for Backend {
     fn eq(&self, other: &Self) -> bool {
-        self.name() == other.name()
+        self.id == other.id
     }
 }
 
-impl Eq for dyn Backend {}
+impl Eq for Backend {}
+
+impl Backend {
+    pub fn id(&self) -> usize {
+        self.id
+    }
+
+    pub fn device_ids(&self) -> &[usize] {
+        &self.device_ids
+    }
+}
+
+impl Deref for Backend {
+    type Target = Box<dyn BackendHandle>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
 
 #[derive(Copy, Clone)]
 pub enum DeviceKind {
@@ -132,23 +196,41 @@ pub struct MemoryStats {
     pub usage: usize,
 }
 
-pub trait Device: Send {
+pub trait DeviceHandle: Send + Sync {
     fn name(&self) -> &str;
 
     fn kind(&self) -> DeviceKind;
 
     fn backend_name(&self) -> &str;
 
-    fn backend(&self) -> Option<RefGuard<Box<dyn Backend>>> {
-        if let Ok(guard) = BACKENDS.lock() {
-            guard
-                .iter()
-                .position(|b| b.name() == self.backend_name())
-                .map(|pos| RefGuard { guard, index: pos })
-        } else {
-            None
-        }
+    fn current_memory_stats(&self) -> MemoryStats;
+}
+
+pub struct Device {
+    inner: Box<dyn DeviceHandle>,
+    global_id: usize,
+    local_id: usize,
+    backend_id: usize,
+}
+
+impl Device {
+    pub fn global_id(&self) -> usize {
+        self.global_id
     }
 
-    fn current_memory_stats(&self) -> MemoryStats;
+    pub fn local_id(&self) -> usize {
+        self.local_id
+    }
+
+    pub fn backend_id(&self) -> usize {
+        self.backend_id
+    }
+}
+
+impl Deref for Device {
+    type Target = Box<dyn DeviceHandle>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
 }

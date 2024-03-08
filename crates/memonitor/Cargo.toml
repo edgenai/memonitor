@@ -9,7 +9,7 @@ edition = "2021"
 publish = true
 
 [dependencies]
-memonitor-sys = { path = "../memonitor-sys" }
+memonitor-sys = { path = "../memonitor-sys", version = "0.1.0" }
 sysinfo = "0.30.7"
 
 [features]

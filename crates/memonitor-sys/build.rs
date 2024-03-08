@@ -15,6 +15,12 @@ fn main() {
     read_dir(submodules_dir.join("volk"))
         .expect("Could not find Volk. Did you forget to initialize submodules?");
     let mut build = Config::new(vk_dir.as_path());
+
+    #[cfg(debug_assertions)]
+    {
+        build.define("MEMONITOR_VALIDATE", "ON");
+    }
+
     let lib_out = build.build();
     println!(
         "cargo:rustc-link-search=native={}",

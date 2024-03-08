@@ -1,7 +1,11 @@
 [package]
 name = "memonitor-sys"
+description = "Automatically generated bindings for some of memonitor's backends."
 version = "0.1.0"
+authors = ["Pedro Valente <pedro.amaral.valente@gmail.com>"]
+license-file = "../../LICENSE"
 edition = "2021"
+publish = true
 
 [dependencies]
 

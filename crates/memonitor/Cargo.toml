@@ -1,7 +1,12 @@
 [package]
 name = "memonitor"
+description = "Query CPU and GPU memory information in a portable way."
 version = "0.1.0"
+authors = ["Pedro Valente <pedro.amaral.valente@gmail.com>"]
+license-file = "../../LICENSE"
+readme = "../../README.md"
 edition = "2021"
+publish = true
 
 [dependencies]
 memonitor-sys = { path = "../memonitor-sys" }

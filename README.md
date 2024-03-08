@@ -16,8 +16,8 @@ At the moment, the following backends are supported:
 
 * INSERT CPU CRATE (CPU only)
 * Vulkan
-* ~~CUDA (NVIDIA devices only)~~ (planned #1)
-* ~~Metal (macOS only)~~ (planned #2)
+* ~~CUDA (NVIDIA devices only)~~ (planned [#1](https://github.com/edgenai/memonitor/issues/1))
+* ~~Metal (macOS only)~~ (planned [#2](https://github.com/edgenai/memonitor/issues/2))
 
 ## Platforms
 

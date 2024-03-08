@@ -1,12 +1,12 @@
 # memonitor-sys
 
-<p align="left">
-    <img alt="GitHub" src="https://img.shields.io/github/license/edgenai/memonitor">
-</p>
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Documentation](https://docs.rs/memonitor-sys/badge.svg)](https://docs.rs/memonitor-sys/)
+[![Crate](https://img.shields.io/crates/v/memonitor-sys.svg)](https://crates.io/crates/memonitor-sys)
 
 ---
 
-Automatically generated bindings for some of [memonitor](https://github.com/edgenai/memonitor)'s backends.
+Automatically generated bindings for some of [memonitor](https://crates.io/crates/memonitor)'s backends.
 
 ## Platforms
 

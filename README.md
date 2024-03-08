@@ -1,8 +1,8 @@
 # memonitor
 
-<p align="left">
-    <img alt="GitHub" src="https://img.shields.io/github/license/edgenai/memonitor">
-</p>
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Documentation](https://docs.rs/memonitor/badge.svg)](https://docs.rs/memonitor/)
+[![Crate](https://img.shields.io/crates/v/memonitor.svg)](https://crates.io/crates/memonitor)
 
 ---
 

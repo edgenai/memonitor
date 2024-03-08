@@ -6,9 +6,9 @@
 
 ---
 
-**Memonitor** is a lightweight library that allows query information from various CPU and GPU devices.
-The main purpose is the ability to query memory related information, like how much memory a device has and how much is
-currently available to be allocated.
+**Memonitor** is a lightweight library that allows querying information from various CPU and GPU devices.
+The main purpose is the ability to query memory related information, like how much local memory a device has and how
+much is currently available to be allocated.
 
 This is achieved by dynamically loading, if present, various device APIs found in the system, and querying them
 directly.

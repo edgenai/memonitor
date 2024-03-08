@@ -12,6 +12,7 @@ pub(super) struct Vulkan {
 }
 
 unsafe impl Send for Vulkan {}
+
 unsafe impl Sync for Vulkan {}
 
 impl Vulkan {
@@ -45,6 +46,10 @@ impl Vulkan {
                     return None;
                 }
 
+                if properties.total_memory == 0 {
+                    continue;
+                }
+
                 let name = unsafe { CStr::from_ptr(properties.name.as_ptr()) };
                 let kind = match properties.kind {
                     vulkan::DeviceKind::IntegratedGPU => DeviceKind::GPU(GPUKind::Integrated),
@@ -59,6 +64,7 @@ impl Vulkan {
                     handle: c_device,
                     name: name.to_string_lossy().to_string(),
                     kind,
+                    memory: properties.total_memory,
                 };
                 devices.push(device);
             }
@@ -91,9 +97,11 @@ pub(super) struct VulkanDevice {
     handle: vulkan::DeviceRef,
     name: String,
     kind: DeviceKind,
+    memory: usize,
 }
 
 unsafe impl Send for VulkanDevice {}
+
 unsafe impl Sync for VulkanDevice {}
 
 impl DeviceHandle for VulkanDevice {
@@ -112,8 +120,9 @@ impl DeviceHandle for VulkanDevice {
     fn current_memory_stats(&self) -> MemoryStats {
         let c_stats = unsafe { vulkan::device_memory_properties(self.handle) };
         MemoryStats {
-            budget: c_stats.budget,
-            usage: c_stats.used,
+            total: self.memory,
+            free: c_stats.budget,
+            used: c_stats.used,
         }
     }
 }

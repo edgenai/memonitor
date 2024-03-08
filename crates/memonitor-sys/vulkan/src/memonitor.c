@@ -234,9 +234,24 @@ struct vk_DeviceProperties vk_device_properties(struct vk_DeviceRef device) {
             kind = Other;
             break;
     }
+
+    VkPhysicalDeviceMemoryProperties2 memory_properties = {0};
+    memory_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+    VkPhysicalDeviceMemoryBudgetPropertiesEXT budget_stats = {0};
+    budget_stats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
+    memory_properties.pNext = &budget_stats;
+    vkGetPhysicalDeviceMemoryProperties2(cast_device, &memory_properties);
+
+    size_t memory = memory_properties.memoryProperties.memoryHeaps[device.local_heap].size;
+    // Return 0 memory for unused pipes and such
+    if (!budget_stats.heapUsage[device.local_heap] && !budget_stats.heapBudget[device.local_heap]) {
+        memory = 0;
+    }
+
     struct vk_DeviceProperties ret_props = {0};
     strncpy(ret_props.name, properties.properties.deviceName, 256U);
     ret_props.kind = kind;
+    ret_props.total_memory = memory;
     return ret_props;
 }
 

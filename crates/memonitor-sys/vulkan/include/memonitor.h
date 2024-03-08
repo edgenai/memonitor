@@ -86,6 +86,8 @@ struct vk_DeviceProperties {
     char name[256U];
     /// The hardware type of this device.
     enum vk_DeviceKind kind;
+    /// The total amount of local memory for this device.
+    size_t total_memory;
 };
 
 /**

@@ -1,6 +1,8 @@
+use std::fmt::{Display, Formatter};
 use std::ops::{Deref, RangeBounds, RangeFull};
 use std::sync::{RwLock, RwLockReadGuard};
 
+mod cpu;
 #[cfg(feature = "vulkan")]
 mod vulkan;
 
@@ -23,6 +25,9 @@ impl Context {
         if !self.backends.is_empty() {
             return;
         }
+
+        let (system, cpus) = cpu::Host::init();
+        self.register_backend(system, cpus);
 
         #[cfg(feature = "vulkan")]
         if let Some((backend, devices)) = vulkan::Vulkan::init() {
@@ -184,6 +189,18 @@ pub enum DeviceKind {
     Other,
 }
 
+impl Display for DeviceKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DeviceKind::GPU(GPUKind::Integrated) => write!(f, "Integrated Graphics Card"),
+            DeviceKind::GPU(GPUKind::Discrete) => write!(f, "Discrete Graphics Card"),
+            DeviceKind::GPU(GPUKind::Virtual) => write!(f, "Virtual Graphics Card"),
+            DeviceKind::CPU => write!(f, "CPU"),
+            DeviceKind::Other => write!(f, "Other"),
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
 pub enum GPUKind {
     Integrated,
@@ -192,8 +209,9 @@ pub enum GPUKind {
 }
 
 pub struct MemoryStats {
-    pub budget: usize,
-    pub usage: usize,
+    pub total: usize,
+    pub free: usize,
+    pub used: usize,
 }
 
 pub trait DeviceHandle: Send + Sync {

@@ -1,14 +1,14 @@
 use memonitor::{init, list_all_devices, list_backends};
 
 #[test]
-fn vulkan() {
+fn cpu() {
     init();
 
     let device_ids = {
         let backends = list_backends();
         backends
             .iter()
-            .find(|b| b.name() == "Vulkan")
+            .find(|b| b.name() == "Host")
             .unwrap()
             .device_ids()
             .to_vec()

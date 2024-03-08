@@ -2,9 +2,7 @@ use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
 use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
-use crate::{BackendHandle, DeviceHandle, DeviceKind, MemoryStats};
-
-const BACKEND_NAME: &str = "Host";
+use crate::{BackendHandle, DeviceHandle, DeviceKind, MemoryStats, CPU_NAME};
 
 pub(super) struct Host {
     _system: Arc<RwLock<System>>,
@@ -46,7 +44,7 @@ impl Host {
 
 impl BackendHandle for Host {
     fn name(&self) -> &str {
-        BACKEND_NAME
+        CPU_NAME
     }
 }
 
@@ -66,7 +64,7 @@ impl DeviceHandle for Cpu {
     }
 
     fn backend_name(&self) -> &str {
-        BACKEND_NAME
+        CPU_NAME
     }
 
     fn current_memory_stats(&self) -> MemoryStats {
@@ -75,7 +73,7 @@ impl DeviceHandle for Cpu {
 
         MemoryStats {
             total: self.memory,
-            free: guard.free_memory() as usize,
+            available: guard.available_memory() as usize,
             used: guard.used_memory() as usize,
         }
     }

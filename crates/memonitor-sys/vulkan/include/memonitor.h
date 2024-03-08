@@ -71,10 +71,15 @@ struct vk_DeviceRef vk_get_device(struct vk_Devices *devices, uint32_t index);
  * The hardware type of a device.
  */
 enum vk_DeviceKind {
+    /// A Graphics Card physically integrated into the CPU (probably sharing the same memory).
     IntegratedGPU,
+    /// A discrete Graphics Card, probably connected through PCIE.
     DiscreteGPU,
+    /// A virtual Graphics Card.
     VirtualGPU,
+    /// A Central Processing Unit.
     CPU,
+    /// Some other, unknown type.
     Other,
 };
 

@@ -24,7 +24,7 @@ fn cpu() {
                 devices[id].kind(),
                 stats.used,
                 stats.total,
-                stats.free
+                stats.available
             );
         }
     }

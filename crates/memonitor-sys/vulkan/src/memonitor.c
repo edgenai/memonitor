@@ -168,7 +168,7 @@ struct vk_Devices vk_list_devices() {
 
     uint32_t *heap_indexes = calloc(count, sizeof(uint32_t));
     for (uint32_t d = 0; d < count; d++) {
-        VkPhysicalDeviceMemoryProperties2 memory_properties = {};
+        VkPhysicalDeviceMemoryProperties2 memory_properties = {0};
         memory_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
         vkGetPhysicalDeviceMemoryProperties2(device_handles[d], &memory_properties);
         for (uint32_t i = 0; i < memory_properties.memoryProperties.memoryHeapCount; i++) {
@@ -206,13 +206,13 @@ struct vk_DeviceRef vk_get_device(struct vk_Devices *devices, uint32_t index) {
 }
 
 struct vk_DeviceProperties vk_device_properties(struct vk_DeviceRef device) {
-    const struct vk_DeviceProperties invalid_properties = {{}, Other};
+    const struct vk_DeviceProperties invalid_properties = {{0}, Other};
     if (!device.handle) {
         return invalid_properties;
     }
 
     VkPhysicalDevice cast_device = device.handle;
-    VkPhysicalDeviceProperties2 properties = {};
+    VkPhysicalDeviceProperties2 properties = {0};
     properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
     vkGetPhysicalDeviceProperties2(cast_device, &properties);
     enum vk_DeviceKind kind = Other;
@@ -234,22 +234,22 @@ struct vk_DeviceProperties vk_device_properties(struct vk_DeviceRef device) {
             kind = Other;
             break;
     }
-    struct vk_DeviceProperties ret_props = {};
+    struct vk_DeviceProperties ret_props = {0};
     strncpy(ret_props.name, properties.properties.deviceName, 256U);
     ret_props.kind = kind;
     return ret_props;
 }
 
 struct vk_DeviceMemoryProperties vk_device_memory_properties(struct vk_DeviceRef device) {
-    const struct vk_DeviceMemoryProperties invalid_properties = {};
+    const struct vk_DeviceMemoryProperties invalid_properties = {0};
     if (!device.handle) {
         return invalid_properties;
     }
 
     VkPhysicalDevice cast_device = device.handle;
-    VkPhysicalDeviceMemoryProperties2 properties = {};
+    VkPhysicalDeviceMemoryProperties2 properties = {0};
     properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
-    VkPhysicalDeviceMemoryBudgetPropertiesEXT memory_stats = {};
+    VkPhysicalDeviceMemoryBudgetPropertiesEXT memory_stats = {0};
     memory_stats.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT;
     properties.pNext = &memory_stats;
     vkGetPhysicalDeviceMemoryProperties2(cast_device, &properties);

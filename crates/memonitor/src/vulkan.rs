@@ -119,10 +119,13 @@ impl DeviceHandle for VulkanDevice {
 
     fn current_memory_stats(&self) -> MemoryStats {
         let c_stats = unsafe { vulkan::device_memory_properties(self.handle) };
+        // The Vulkan extension returns the maximum budget at this time, including the memory this process is already
+        // currently using, so this is done to get the true value for currently free memory
+        let free_memory = c_stats.budget - c_stats.used;
         MemoryStats {
             total: self.memory,
-            free: c_stats.budget,
-            used: c_stats.used,
+            free: free_memory,
+            used: self.memory - free_memory,
         }
     }
 }

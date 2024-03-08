@@ -14,7 +14,7 @@ This is achieved by dynamically loading, if present, various device APIs found i
 directly.
 At the moment, the following backends are supported:
 
-- [x] INSERT CPU CRATE (CPU only)
+- [x] [sysinfo](https://crates.io/crates/sysinfo) (CPU only)
 - [x] Vulkan
 - [ ] ~~CUDA (NVIDIA devices only)~~ (planned [#1](https://github.com/edgenai/memonitor/issues/1))
 - [ ] ~~Metal (macOS only)~~ (planned [#2](https://github.com/edgenai/memonitor/issues/2))

@@ -5,6 +5,7 @@ version = "0.1.0"
 authors = ["Pedro Valente <pedro.amaral.valente@gmail.com>"]
 license-file = "../../LICENSE"
 edition = "2021"
+links = "memonitor-vk" # TODO this will have to be updated at some point, its not good practice to link against multiple libs as is currently the case
 publish = true
 
 [dependencies]

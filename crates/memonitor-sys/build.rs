@@ -8,44 +8,83 @@ use std::path::PathBuf;
 fn main() {
     let cur_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
-    let vk_dir = cur_dir.join("vulkan");
-    let submodules_dir = vk_dir.join("thirdparty");
-    read_dir(submodules_dir.join("Vulkan-Headers"))
-        .expect("Could not find Vulkan Headers. Did you forget to initialize submodules?");
-    read_dir(submodules_dir.join("volk"))
-        .expect("Could not find Volk. Did you forget to initialize submodules?");
-    let mut build = Config::new(vk_dir.as_path());
-
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "vulkan")]
     {
-        build.define("MEMONITOR_VALIDATE", "ON");
+        let vk_dir = cur_dir.join("vulkan");
+        let submodules_dir = vk_dir.join("thirdparty");
+        read_dir(submodules_dir.join("Vulkan-Headers"))
+            .expect("Could not find Vulkan Headers. Did you forget to initialize submodules?");
+        read_dir(submodules_dir.join("volk"))
+            .expect("Could not find Volk. Did you forget to initialize submodules?");
+        let mut build = Config::new(vk_dir.as_path());
+
+        #[cfg(debug_assertions)]
+        {
+            build.define("MEMONITOR_VALIDATE", "ON");
+        }
+
+        let lib_out = build.build();
+        println!(
+            "cargo:rustc-link-search=native={}",
+            lib_out.join("lib").display()
+        );
+        println!("cargo:rustc-link-lib=static=volk");
+        println!("cargo:rustc-link-lib=static=memonitor-vk");
+
+        let vk_bindings = Builder::default()
+            .header(vk_dir.join("include").join("memonitor.h").to_string_lossy())
+            .allowlist_function("vk_.*")
+            .allowlist_type("vk_.*")
+            .parse_callbacks(Box::new(PrefixRemover::new("vk_")))
+            .default_enum_style(EnumVariation::Rust {
+                non_exhaustive: true,
+            })
+            .use_core()
+            .generate()
+            .expect("Failed to generate Vulkan bindings");
+
+        let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+
+        vk_bindings
+            .write_to_file(out_path.join("vk_bindings.rs"))
+            .expect("Couldn't write bindings");
     }
 
-    let lib_out = build.build();
-    println!(
-        "cargo:rustc-link-search=native={}",
-        lib_out.join("lib").display()
-    );
-    println!("cargo:rustc-link-lib=static=volk");
-    println!("cargo:rustc-link-lib=static=memonitor-vk");
+    #[cfg(feature = "cuda")]
+    {
+        let cuda_dir = cur_dir.join("cuda");
+        let mut build = Config::new(cuda_dir.as_path());
 
-    let vk_bindings = Builder::default()
-        .header(vk_dir.join("include").join("memonitor.h").to_string_lossy())
-        .allowlist_function("vk_.*")
-        .allowlist_type("vk_.*")
-        .parse_callbacks(Box::new(PrefixRemover::new("vk_")))
-        .default_enum_style(EnumVariation::Rust {
-            non_exhaustive: true,
-        })
-        .use_core()
-        .generate()
-        .expect("Failed to generate Vulkan bindings");
+        let lib_out = build.build();
+        println!(
+            "cargo:rustc-link-search=native={}",
+            lib_out.join("lib").display()
+        );
+        println!("cargo:rustc-link-lib=static=memonitor-cuda");
 
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+        let cuda_bindings = Builder::default()
+            .header(
+                cuda_dir
+                    .join("include")
+                    .join("memonitor.h")
+                    .to_string_lossy(),
+            )
+            .allowlist_function("cu_.*")
+            .allowlist_type("cu_.*")
+            .parse_callbacks(Box::new(PrefixRemover::new("cu_")))
+            .default_enum_style(EnumVariation::Rust {
+                non_exhaustive: true,
+            })
+            .use_core()
+            .generate()
+            .expect("Failed to generate Cuda bindings");
 
-    vk_bindings
-        .write_to_file(out_path.join("vk_bindings.rs"))
-        .expect("Couldn't write bindings");
+        let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+
+        cuda_bindings
+            .write_to_file(out_path.join("cuda_bindings.rs"))
+            .expect("Couldn't write bindings");
+    }
 }
 
 #[derive(Debug)]

@@ -206,7 +206,7 @@ struct vk_DeviceRef vk_get_device(struct vk_Devices *devices, uint32_t index) {
 }
 
 struct vk_DeviceProperties vk_device_properties(struct vk_DeviceRef device) {
-    const struct vk_DeviceProperties invalid_properties = {{0}, Other};
+    const struct vk_DeviceProperties invalid_properties = {{0}, Other, 0};
     if (!device.handle) {
         return invalid_properties;
     }
@@ -249,7 +249,7 @@ struct vk_DeviceProperties vk_device_properties(struct vk_DeviceRef device) {
     }
 
     struct vk_DeviceProperties ret_props = {0};
-    strncpy(ret_props.name, properties.properties.deviceName, 256U);
+    strncpy_s(ret_props.name, sizeof(ret_props.name), properties.properties.deviceName, 256U);
     ret_props.kind = kind;
     ret_props.total_memory = memory;
     return ret_props;

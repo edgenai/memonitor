@@ -17,5 +17,6 @@ cmake = "0.1.50"
 bindgen = "0.69.4"
 
 [features]
-default = ["vulkan"]
+default = ["vulkan", "cuda"]
 vulkan = []
+cuda = []

@@ -49,6 +49,7 @@ pub const CPU_NAME: &str = "Host";
 
 #[cfg(feature = "vulkan")]
 mod vulkan;
+mod cuda;
 
 /// The name of the Vulkan backend.
 #[cfg(feature = "vulkan")]

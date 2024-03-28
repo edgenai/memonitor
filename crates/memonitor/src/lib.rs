@@ -49,11 +49,16 @@ pub const CPU_NAME: &str = "Host";
 
 #[cfg(feature = "vulkan")]
 mod vulkan;
-mod cuda;
 
 /// The name of the Vulkan backend.
 #[cfg(feature = "vulkan")]
 pub const VULKAN_NAME: &str = "Vulkan";
+
+mod cuda;
+
+/// The name of the Cuda backend.
+#[cfg(feature = "vulkan")]
+pub const CUDA_NAME: &str = "Cuda";
 
 static CONTEXT: RwLock<Context> = RwLock::new(Context::default());
 
@@ -80,6 +85,11 @@ impl Context {
 
         #[cfg(feature = "vulkan")]
         if let Some((backend, devices)) = vulkan::Vulkan::init() {
+            self.register_backend(backend, devices)
+        }
+
+        #[cfg(feature = "cuda")]
+        if let Some((backend, devices)) = cuda::Cuda::init() {
             self.register_backend(backend, devices)
         }
     }

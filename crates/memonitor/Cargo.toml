@@ -14,5 +14,6 @@ memonitor-sys = { path = "../memonitor-sys", version = "0.1.1", default-features
 sysinfo = "0.30.7"
 
 [features]
-default = ["vulkan"]
+default = ["vulkan", "cuda"]
 vulkan = ["memonitor-sys/vulkan"]
+cuda = ["memonitor-sys/cuda"]

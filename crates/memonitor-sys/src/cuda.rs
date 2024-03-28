@@ -1,4 +1,4 @@
-//! Automatically generated bindings for the Vulkan backend.
+//! Automatically generated bindings for the Cuda backend.
 
 #![allow(non_upper_case_globals)]
 #![allow(non_camel_case_types)]

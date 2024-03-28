@@ -102,12 +102,14 @@ struct cu_Devices cu_list_devices() {
         res = cuDeviceGet(&device_handles[d], d);
         if (res != 0) {
             free(device_handles);
+            free(ctx_handles);
             return invalid_devices;
         }
 
         res = cuCtxCreate(&ctx_handles[d], 0, device_handles[d]);
         if (res != 0) {
             free(device_handles);
+            free(ctx_handles);
             return invalid_devices;
         }
     }
@@ -153,23 +155,19 @@ struct cu_DeviceProperties cu_device_properties(struct cu_DeviceRef device) {
     }
 
     CUdevice cast_device = device.handle;
-    char *name = NULL;
-    size_t total_memory = 0;
-
-    CUresult res = cuDeviceGetName(name, 256, cast_device);
-    if (res != 0) {
-        return invalid_properties;
-    }
-
-    res = cuDeviceTotalMem(&total_memory, cast_device);
-    if (res != 0) {
-        return invalid_properties;
-    }
-
     struct cu_DeviceProperties props = {0};
-    strncpy_s(props.name, sizeof(props.name), name, 256U);
     props.kind = DiscreteGPU;
-    props.total_memory = total_memory;
+
+    CUresult res = cuDeviceGetName(props.name, sizeof(props.name), cast_device);
+    if (res != 0) {
+        return invalid_properties;
+    }
+
+    res = cuDeviceTotalMem(&props.total_memory, cast_device);
+    if (res != 0) {
+        return invalid_properties;
+    }
+
     return props;
 }
 

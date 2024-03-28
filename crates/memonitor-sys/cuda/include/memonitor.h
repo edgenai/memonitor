@@ -103,7 +103,7 @@ struct cu_DeviceProperties cu_device_properties(struct cu_DeviceRef device);
  * Memory information of a device at one point in time.
  */
 struct cu_DeviceMemoryProperties {
-    /// How much memory is available to this device at any given moment.
+    /// How much memory is available to this device at a given moment.
     size_t budget;
     /// How much memory is currently getting used from the device.
     size_t used;
